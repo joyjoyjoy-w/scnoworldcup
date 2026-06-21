@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Engagement: World Cup Series</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green:      #16a34a;
+    --green-light:#dcfce7;
+    --green-dark: #14532d;
+    --gold:       #ca8a04;
+    --gold-light: #fef9c3;
+    --red:        #dc2626;
+    --red-light:  #fee2e2;
+    --blue:       #2563eb;
+    --blue-light: #dbeafe;
+    --gray-50:    #f8fafc;
+    --gray-100:   #f1f5f9;
+    --gray-200:   #e2e8f0;
+    --gray-400:   #94a3b8;
+    --gray-600:   #475569;
+    --gray-800:   #1e293b;
+    --gray-900:   #0f172a;
+    --white:      #ffffff;
+    --radius-sm:  6px;
+    --radius-md:  10px;
+    --radius-lg:  16px;
+    --shadow-sm:  0 1px 3px rgba(0,0,0,.08);
+    --shadow-md:  0 4px 16px rgba(0,0,0,.10);
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: #1a0a2e;
+    color: var(--white);
+    padding: 0 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+  }
+  .header-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.3px;
+  }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--green);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .header-player {
+    font-size: 13px;
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .player-chip {
+    background: rgba(255,255,255,.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+    color: var(--white);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    position: sticky;
+    top: 56px;
+    z-index: 99;
+  }
+  .tabs-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 14px 8px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-400);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .tab-btn.active {
+    color: var(--gray-900);
+    border-bottom-color: var(--green);
+  }
+  .tab-btn:hover:not(.active) { color: var(--gray-600); }
+
+  /* ── Main Content ── */
+  .main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 4rem;
+  }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .card-title { font-weight: 600; font-size: 15px; line-height: 1.4; }
+  .card-meta { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge-open    { background: var(--green-light); color: var(--green-dark); }
+  .badge-closed  { background: var(--red-light);   color: var(--red); }
+  .badge-scored  { background: var(--blue-light);  color: var(--blue); }
+  .badge-pending { background: var(--gold-light);  color: var(--gold); }
+
+  /* ── Answer buttons ── */
+  .answer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .answer-grid.single { grid-template-columns: 1fr; }
+  .ans-btn {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--gray-200);
+    background: var(--gray-50);
+    color: var(--gray-800);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all .15s;
+    font-family: inherit;
+    line-height: 1.3;
+  }
+  .ans-btn:hover:not(:disabled) {
+    border-color: var(--green);
+    background: var(--green-light);
+    color: var(--green-dark);
+  }
+  .ans-btn:disabled { cursor: not-allowed; }
+  .ans-btn.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+  .ans-btn.correct  { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
+  .ans-btn.wrong    { border-color: var(--red); background: var(--red-light); color: var(--red); }
+  .ans-btn.correct::after { content: ' ✓'; }
+  .ans-btn.wrong::after   { content: ' ✗'; }
+
+  .result-note {
+    margin-top: 10px;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+  }
+  .result-note.correct { background: var(--green-light); color: var(--green-dark); }
+  .result-note.wrong   { background: var(--red-light); color: var(--red); }
+  .result-note.pending { background: var(--gold-light); color: var(--gold); }
+  .result-note.missed  { background: var(--gray-100); color: var(--gray-600); }
+
+  /* ── Leaderboard ── */
+  .lb-header {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    margin-bottom: 4px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    transition: background .1s;
+  }
+  .lb-row.me { border-color: var(--green); background: var(--green-light); }
+  .lb-row.top1 { background: #fef3c7; border-color: #f59e0b; }
+  .lb-rank { font-weight: 700; font-size: 18px; text-align: center; }
+  .lb-name { font-weight: 500; font-size: 14px; }
+  .lb-answered { font-size: 12px; color: var(--gray-400); text-align: right; }
+  .lb-pts { font-weight: 700; font-size: 16px; text-align: right; color: var(--gray-900); }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  .stat {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-num { font-size: 24px; font-weight: 700; color: var(--gray-900); }
+  .stat-lbl { font-size: 11px; color: var(--gray-400); margin-top: 2px; text-transform: uppercase; letter-spacing: .4px; }
+
+  /* ── Forms ── */
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-600); margin-bottom: 5px; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    color: var(--gray-800);
+    font-family: inherit;
+    transition: border-color .15s;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(22,163,74,.1);
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-200);
+    background: var(--white);
+    color: var(--gray-800);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--gray-100); }
+  .btn-primary { background: var(--green); color: var(--white); border-color: var(--green); }
+  .btn-primary:hover { background: #15803d; }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red-light); }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+  .btn-block { width: 100%; }
+
+  /* ── Pin / Auth gate ── */
+  .gate {
+    max-width: 320px;
+    margin: 3rem auto;
+    text-align: center;
+  }
+  .gate-icon { font-size: 48px; margin-bottom: 1rem; }
+  .gate h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .gate p { font-size: 14px; color: var(--gray-400); margin-bottom: 1.5rem; }
+
+  /* ── Player select ── */
+  .player-gate {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .player-gate h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px; color: #1a0a2e; line-height: 1.3; }
+  .player-gate p  { font-size: 13px; color: var(--gray-400); margin-bottom: 1.25rem; }
+  .pin-dots { display: flex; gap: 10px; justify-content: center; margin: 14px 0 4px; }
+  .pin-dot  { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--gray-200); background: var(--white); transition: all .15s; }
+  .pin-dot.filled { background: #1a0a2e; border-color: #1a0a2e; }
+  .pin-dot.error  { background: var(--red); border-color: var(--red); }
+  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .pin-key { padding: 14px; border-radius: 10px; border: 0.5px solid var(--gray-200); background: var(--white); font-size: 18px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background .1s; text-align: center; }
+  .pin-key:hover { background: var(--gray-100); }
+  .pin-key:active { background: var(--gray-200); }
+  .pin-key.wide { grid-column: span 1; font-size: 14px; }
+  .acc-view { display: none; }
+  .acc-view.active { display: block; }
+  .acc-tab-bar { display: flex; gap: 4px; background: #ede9fe; border-radius: 8px; padding: 4px; margin-bottom: 1.25rem; }
+  .acc-tab { flex: 1; padding: 9px; border: none; background: none; font-size: 13px; font-weight: 600; color: #7c3aed; cursor: pointer; border-radius: 6px; font-family: inherit; transition: all .15s; }
+  .acc-tab.active { background: #7c3aed; color: var(--white); box-shadow: 0 2px 8px rgba(124,58,237,.3); }
+  .or-divider { text-align: center; font-size: 12px; color: var(--gray-400); margin: 12px 0; position: relative; }
+  .or-divider::before, .or-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 42%;
+    height: 1px;
+    background: var(--gray-200);
+  }
+  .or-divider::before { left: 0; }
+  .or-divider::after  { right: 0; }
+
+  /* ── Admin: question card ── */
+  .admin-q-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 10px;
+  }
+  .admin-q-card .q-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .admin-q-card .q-opts  { font-size: 13px; color: var(--gray-600); margin-bottom: 8px; }
+  .admin-q-card .q-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* ── Countdown timer ── */
+  .countdown {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .countdown.urgent { color: var(--red); font-weight: 600; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a0a2e;
+    color: var(--white);
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 999;
+    transition: transform .25s ease;
+    white-space: nowrap;
+    box-shadow: var(--shadow-md);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Confirm Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 200;
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+  .modal-sheet {
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    padding: 1.5rem 1.25rem 2rem;
+    width: 100%; max-width: 520px;
+    transform: translateY(40px);
+    transition: transform .25s ease;
+  }
+  .modal-overlay.show .modal-sheet { transform: translateY(0); }
+  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .modal-question { font-size: 13px; color: var(--gray-600); margin-bottom: 1rem; line-height: 1.5; }
+  .modal-answer { background: #1a0a2e; color: var(--white); border-radius: 10px; padding: 12px 16px; font-size: 15px; font-weight: 600; text-align: center; margin-bottom: 1.25rem; }
+  .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modal-btn { padding: 12px; border-radius: 10px; border: 1px solid var(--gray-200); background: none; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background .15s; }
+  .modal-btn:hover { background: var(--gray-100); }
+  .modal-btn-confirm { background: var(--green); color: var(--white); border-color: var(--green); }
+  .modal-btn-confirm:hover { background: #15803d; }
+  .modal-change-note { font-size: 12px; color: var(--gray-400); text-align: center; margin-top: 10px; }
+
+  /* ── Util ── */
+  .divider { height: 1px; background: var(--gray-200); margin: 1.25rem 0; }
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--gray-400); font-size: 14px; }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; display: block; }
+  .flex { display: flex; align-items: center; gap: 8px; }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .mt-1 { margin-top: 8px; }
+  .mt-2 { margin-top: 14px; }
+  .text-sm { font-size: 13px; }
+  .text-muted { color: var(--gray-400); }
+  .text-green { color: var(--green); font-weight: 600; }
+  .text-red { color: var(--red); font-weight: 600; }
+  .loading { text-align: center; padding: 3rem; color: var(--gray-400); }
+  .spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid var(--gray-200); border-top-color: var(--green); border-radius: 50%; animation: spin .6s linear infinite; margin-bottom: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace; }
+
+  .lb-mode-btn {
+    flex: 1;
+    padding: 7px 4px;
+    border: none;
+    background: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-400);
+    cursor: pointer;
+    border-radius: 7px;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .lb-mode-btn.active {
+    background: var(--white);
+    color: var(--gray-800);
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--gray-400);
+    margin: 1.25rem 0 0.75rem;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  @media (max-width: 480px) {
+    .answer-grid { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(3, 1fr); }
+    .lb-answered { display: none; }
+    .lb-header .lb-answered-h { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon" style="background:#c4b5fd;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000;letter-spacing:-0.5px">SCO</div>
+      <span>Engagement: World Cup Series</span>
+    </div>
+    <div class="header-player" id="header-player" style="display:none;align-items:center;gap:8px">
+      <div style="display:flex;flex-direction:column;align-items:flex-end">
+        <span style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px">Logged in as</span>
+        <span class="player-chip" id="header-player-name" style="margin-top:2px"></span>
+      </div>
+      <button onclick="logout()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:var(--white);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">Switch</button>
+    </div>
+  </div>
+</header>
+
+<!-- Tabs -->
+<nav class="tabs">
+  <div class="tabs-inner">
+    <button class="tab-btn active" onclick="switchTab('play', this)">⚽ Games</button>
+    <button class="tab-btn" onclick="switchTab('leaderboard', this)">🏆 Leaderboard</button>
+    <button class="tab-btn" onclick="switchTab('account', this)">👤 Account</button>
+    <button class="tab-btn" onclick="switchTab('admin', this)">⚙️ Admin</button>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- ── TAB: PLAY ── -->
+  <div id="tab-play" class="section active">
+    <div id="questions-container">
+      <div class="loading"><div class="spinner"></div><br>Loading questions...</div>
+    </div>
+  </div>
+
+  <!-- ── TAB: ACCOUNT ── -->
+  <div id="tab-account" class="section">
+    <div class="player-gate">
+      <h3>WELCOME TO SC&amp;O ENGAGEMENT EVENT</h3>
+
+      <!-- Login / Register tabs -->
+      <div class="acc-tab-bar" style="margin-top:1rem">
+        <button class="acc-tab active" onclick="switchAccView('login',this)">Login</button>
+        <button class="acc-tab" onclick="switchAccView('register',this)">Register</button>
+      </div>
+
+      <!-- LOGIN VIEW -->
+      <div id="acc-login" class="acc-view active">
+        <div class="form-group" style="margin-top:0">
+          <label>Select your name</label>
+          <select id="select-player" onchange="onLoginSelect(this.value)" style="width:100%;padding:9px 12px;font-size:14px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--gray-800);font-family:inherit">
+            <option value="">— select your name —</option>
+          </select>
+        </div>
+        <div id="login-pin-section" style="display:none">
+          <p style="font-size:13px;color:var(--gray-600);text-align:center;margin-bottom:0">Enter your PIN</p>
+          <div class="pin-dots" id="login-dots">
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+          </div>
+          <div class="pin-keypad">
+            <button class="pin-key" onclick="pinKey('login',1)">1</button>
+            <button class="pin-key" onclick="pinKey('login',2)">2</button>
+            <button class="pin-key" onclick="pinKey('login',3)">3</button>
+            <button class="pin-key" onclick="pinKey('login',4)">4</button>
+            <button class="pin-key" onclick="pinKey('login',5)">5</button>
+            <button class="pin-key" onclick="pinKey('login',6)">6</button>
+            <button class="pin-key" onclick="pinKey('login',7)">7</button>
+            <button class="pin-key" onclick="pinKey('login',8)">8</button>
+            <button class="pin-key" onclick="pinKey('login',9)">9</button>
+            <button class="pin-key wide" onclick="pinClear('login')">⌫</button>
+            <button class="pin-key" onclick="pinKey('login',0)">0</button>
+            <button class="pin-key wide" onclick="pinSubmit('login')" style="background:#1a0a2e;color:white;border-color:#1a0a2e">✓</button>
+          </div>
+          <p id="login-error" style="font-size:13px;color:var(--red);text-align:center;margin-top:10px;display:none">Incorrect PIN. Try again.</p>
+          <button id="forgot-pin-btn" onclick="showForgotPin()" style="display:none;background:none;border:none;font-size:12px;color:#7c3aed;cursor:pointer;font-family:inherit;width:100%;text-align:center;margin-top:4px;text-decoration:underline">Forgot PIN?</button>
+        </div>
+
+        <!-- Forgot PIN section -->
+        <div id="forgot-pin-section" style="display:none;margin-top:1rem">
+          <div style="background:#ede9fe;border:0.5px solid #7c3aed;border-radius:10px;padding:1rem">
+            <p style="font-size:13px;font-weight:600;color:#4c1d95;margin-bottom:6px">Reset your PIN</p>
+            <p style="font-size:12px;color:#6d28d9;margin-bottom:10px">Answer your security question to reset your PIN.</p>
+            <div class="form-group" style="margin-bottom:10px">
+              <label>What is your full name? (as registered)</label>
+              <input id="forgot-name-verify" placeholder="Type your registered name..." style="width:100%;padding:8px 10px;font-size:13px;border:1px solid #c4b5fd;border-radius:6px;font-family:inherit">
+            </div>
+            <p style="font-size:12px;color:#6d28d9;margin-bottom:8px">Enter new PIN:</p>
+            <div class="pin-dots" id="forgot-dots">
+              <div class="pin-dot"></div><div class="pin-dot"></div>
+              <div class="pin-dot"></div><div class="pin-dot"></div>
+            </div>
+            <div class="pin-keypad" style="margin-top:8px">
+              <button class="pin-key" onclick="pinKey('forgot',1)">1</button>
+              <button class="pin-key" onclick="pinKey('forgot',2)">2</button>
+              <button class="pin-key" onclick="pinKey('forgot',3)">3</button>
+              <button class="pin-key" onclick="pinKey('forgot',4)">4</button>
+              <button class="pin-key" onclick="pinKey('forgot',5)">5</button>
+              <button class="pin-key" onclick="pinKey('forgot',6)">6</button>
+              <button class="pin-key" onclick="pinKey('forgot',7)">7</button>
+              <button class="pin-key" onclick="pinKey('forgot',8)">8</button>
+              <button class="pin-key" onclick="pinKey('forgot',9)">9</button>
+              <button class="pin-key" onclick="pinClear('forgot')" style="font-size:14px">⌫</button>
+              <button class="pin-key" onclick="pinKey('forgot',0)">0</button>
+              <button class="pin-key" onclick="pinKey('forgot',0)" style="visibility:hidden"></button>
+            </div>
+            <button onclick="submitForgotPin()" class="btn btn-primary" style="width:100%;margin-top:12px;padding:11px;font-size:14px">Save New PIN</button>
+            <button onclick="hideForgotPin()" style="background:none;border:none;font-size:12px;color:#6d28d9;cursor:pointer;font-family:inherit;width:100%;text-align:center;margin-top:8px">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <!-- REGISTER VIEW -->
+      <div id="acc-register" class="acc-view">
+        <div class="form-group" style="margin-top:0">
+          <label>Your name *</label>
+          <input id="new-player-input" placeholder="Enter your name..." style="width:100%;padding:9px 12px;font-size:14px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:inherit">
+        </div>
+        <div class="form-group">
+          <label>Create PIN *</label>
+          <p style="font-size:12px;color:var(--gray-400);margin-bottom:8px">Choose a 4-digit PIN — you'll need this every time you log in.</p>
+          <div class="pin-dots" id="reg-dots">
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+          </div>
+          <div class="pin-keypad">
+            <button class="pin-key" onclick="pinKey('reg',1)">1</button>
+            <button class="pin-key" onclick="pinKey('reg',2)">2</button>
+            <button class="pin-key" onclick="pinKey('reg',3)">3</button>
+            <button class="pin-key" onclick="pinKey('reg',4)">4</button>
+            <button class="pin-key" onclick="pinKey('reg',5)">5</button>
+            <button class="pin-key" onclick="pinKey('reg',6)">6</button>
+            <button class="pin-key" onclick="pinKey('reg',7)">7</button>
+            <button class="pin-key" onclick="pinKey('reg',8)">8</button>
+            <button class="pin-key" onclick="pinKey('reg',9)">9</button>
+            <button class="pin-key wide" onclick="pinClear('reg')">⌫</button>
+            <button class="pin-key" onclick="pinKey('reg',0)">0</button>
+            <button class="pin-key wide" onclick="pinSubmit('reg')" style="background:#1a0a2e;color:white;border-color:#1a0a2e">✓</button>
+          </div>
+          <button id="reg-submit-btn" class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px;font-size:14px" onclick="pinSubmit('reg')">
+            Register
+          </button>
+        </div>
+      </div>
+
+      <div id="account-status" style="margin-top:1rem"></div>
+    </div>
+  </div>
+
+  <!-- ── TAB: LEADERBOARD ── -->
+  <div id="tab-leaderboard" class="section">
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-num" id="stat-q">—</div><div class="stat-lbl">Questions</div></div>
+      <div class="stat"><div class="stat-num" id="stat-p">—</div><div class="stat-lbl">Participants</div></div>
+      <div class="stat"><div class="stat-num" id="stat-scored">—</div><div class="stat-lbl">Scored</div></div>
+    </div>
+
+    <!-- View mode tabs -->
+    <div style="display:flex;gap:4px;background:var(--gray-100);border-radius:10px;padding:4px;margin-bottom:1rem">
+      <button class="lb-mode-btn active" id="lbmode-overall" onclick="setLbMode('overall')">Overall</button>
+      <button class="lb-mode-btn" id="lbmode-per-q" onclick="setLbMode('per-q')">Per Question</button>
+      <button class="lb-mode-btn" id="lbmode-until" onclick="setLbMode('until')">Until Date</button>
+    </div>
+
+    <!-- Per Question selector -->
+    <div id="lb-perq-ctrl" style="display:none;margin-bottom:1rem">
+      <label style="font-size:13px;color:var(--gray-600);display:block;margin-bottom:4px">Select question</label>
+      <select id="lb-q-select" onchange="renderLeaderboard()" style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--gray-800);font-family:inherit">
+        <option value="">— select question —</option>
+      </select>
+    </div>
+
+    <!-- Until date selector -->
+    <div id="lb-until-ctrl" style="display:none;margin-bottom:1rem">
+      <label style="font-size:13px;color:var(--gray-600);display:block;margin-bottom:4px">Show results up to</label>
+      <input type="datetime-local" id="lb-until-date" onchange="renderLeaderboard()" style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--gray-800);font-family:inherit">
+    </div>
+
+    <div id="leaderboard-container">
+      <div class="loading"><div class="spinner"></div><br>Loading leaderboard...</div>
+    </div>
+  </div>
+
+  <!-- ── TAB: ADMIN ── -->
+  <div id="tab-admin" class="section">
+
+    <!-- Pin Gate -->
+    <div id="admin-gate">
+      <div class="gate">
+        <div class="gate-icon">🔐</div>
+        <h2>Admin Access</h2>
+        <p>Enter your PIN to manage questions and match results.</p>
+        <div class="form-group">
+          <input type="password" id="pin-input" placeholder="PIN Admin" style="text-align:center;font-size:18px;letter-spacing:4px" onkeydown="if(event.key==='Enter')checkPin()">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="checkPin()">Login</button>
+      </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="admin-panel" style="display:none">
+
+      <!-- Add Question -->
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:1rem">
+          <strong style="font-size:15px">➕ Add question</strong>
+        </div>
+        <div class="form-group">
+          <label>Question *</label>
+          <input id="q-text" placeholder="E.g.: Who will win Brazil vs Argentina?">
+        </div>
+        <div class="form-group">
+          <label>Answer options (separate with comma) *</label>
+          <input id="q-opts" placeholder="E.g.: Brazil, Argentina, Draw">
+        </div>
+        <div class="form-group">
+          <label>Match / Context</label>
+          <input id="q-match" placeholder="E.g.: Brazil vs Argentina — Group C — 15 Jun 2026">
+        </div>
+        <div class="form-group">
+          <label>Answer deadline (your local time) *</label>
+          <input type="datetime-local" id="q-deadline">
+        </div>
+        <div class="form-group">
+          <label>Points for correct answer *</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="number" id="q-score" value="1" min="1" max="100" style="width:100px;padding:9px 12px;font-size:16px;font-weight:600;text-align:center;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:inherit">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:12px;color:var(--gray-400)">💡 Set higher points for harder or more exciting matches</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button type="button" onclick="document.getElementById('q-score').value=1" style="font-size:11px;padding:3px 8px;border:0.5px solid var(--gray-200);border-radius:4px;background:var(--gray-50);cursor:pointer;font-family:inherit">1 pt</button>
+                <button type="button" onclick="document.getElementById('q-score').value=2" style="font-size:11px;padding:3px 8px;border:0.5px solid var(--gray-200);border-radius:4px;background:var(--gray-50);cursor:pointer;font-family:inherit">2 pts</button>
+                <button type="button" onclick="document.getElementById('q-score').value=3" style="font-size:11px;padding:3px 8px;border:0.5px solid var(--gray-200);border-radius:4px;background:var(--gray-50);cursor:pointer;font-family:inherit">3 pts</button>
+                <button type="button" onclick="document.getElementById('q-score').value=5" style="font-size:11px;padding:3px 8px;border:0.5px solid var(--gray-200);border-radius:4px;background:var(--gray-50);cursor:pointer;font-family:inherit">5 pts</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addQuestion()">Add question</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Question List -->
+      <div class="flex-between" style="margin-bottom:1rem">
+        <strong style="font-size:15px">📋 Manage questions</strong>
+        <span class="text-sm text-muted" id="admin-q-count"></span>
+      </div>
+      <div id="admin-q-list">
+        <div class="loading"><div class="spinner"></div><br>Loading...</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Danger zone -->
+      <div class="divider"></div>
+      <div class="flex-between" style="margin-bottom:1rem">
+        <strong style="font-size:15px">🔑 Reset participant PIN</strong>
+      </div>
+      <div class="card">
+        <p class="text-sm text-muted" style="margin-bottom:12px">If a participant forgets their PIN, select their name and set a new PIN for them.</p>
+        <div class="form-group">
+          <label>Participant</label>
+          <select id="reset-pin-player" style="width:100%;padding:8px 10px;font-size:14px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--gray-800);font-family:inherit">
+            <option value="">— select participant —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>New PIN (4 digits)</label>
+          <input type="number" id="reset-pin-value" placeholder="e.g. 1234" maxlength="4" style="width:100%;padding:8px 10px;font-size:14px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);font-family:inherit">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="adminResetPin()">Reset PIN</button>
+      </div>
+
+      <div class="card" style="border-color: var(--red)">
+        <strong style="font-size:14px; color: var(--red)">⚠️ Danger zone</strong>
+        <p class="text-sm text-muted mt-1" style="margin-bottom:12px">These actions cannot be undone.</p>
+        <div class="flex" style="flex-wrap:wrap; gap:8px">
+          <button class="btn btn-danger btn-sm" onclick="resetAllAnswers()">Reset all answers</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAllQuestions()">Delete all questions</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-title">Confirm your answer</div>
+    <div class="modal-question" id="modal-question"></div>
+    <div class="modal-answer" id="modal-answer"></div>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="cancelModal()">Cancel</button>
+      <button class="modal-btn modal-btn-confirm" onclick="confirmAnswer()">Submit ✓</button>
+    </div>
+    <div class="modal-change-note" id="modal-change-note"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  KONFIGURASI — ganti dengan milikmu
+// ════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "GANTI_API_KEY",
+  authDomain:        "GANTI_PROJECT_ID.firebaseapp.com",
+  databaseURL:       "https://GANTI_PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId:         "GANTI_PROJECT_ID",
+  storageBucket:     "GANTI_PROJECT_ID.appspot.com",
+  messagingSenderId: "GANTI_MESSAGING_SENDER_ID",
+  appId:             "GANTI_APP_ID"
+};
+
+const ADMIN_PIN = "admin123"; // ← ganti PIN ini
+// ════════════════════════════════════════════
+
+// Init Firebase
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+
+// ── State ──
+let currentPlayer = localStorage.getItem('wc-player') || null;
+let questions = {};
+let players   = {};
+let answers   = {};
+
+// ── Boot ──
+window.addEventListener('DOMContentLoaded', () => {
+  // Show Account tab by default if no saved session
+  const saved = localStorage.getItem('wc-player');
+  if (!saved) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-account').classList.add('active');
+    document.querySelectorAll('.tab-btn')[2].classList.add('active');
+  }
+  bindFirebase();
+});
+
+function bindFirebase() {
+  db.ref('questions').on('value', snap => {
+    questions = snap.val() || {};
+    renderQuestions();
+    renderAdminQList();
+    renderLeaderboard();
+  });
+  db.ref('players').on('value', snap => {
+    players = snap.val() || {};
+    renderPlayerDropdown();
+    renderLeaderboard();
+    // Restore saved player AFTER players data is loaded so name resolves correctly
+    const saved = localStorage.getItem('wc-player');
+    if (saved && players[saved] && !currentPlayer) {
+      showPlayerUI(saved); // session already verified
+    }
+  });
+  db.ref('answers').on('value', snap => {
+    answers = snap.val() || {};
+    renderQuestions();
+    renderLeaderboard();
+  });
+}
+
+// ── Tabs ──
+function switchTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Toast ──
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Account / PIN state ──
+const pinState = { login: '', reg: '', forgot: '' };
+
+function switchAccView(view, btn) {
+  document.querySelectorAll('.acc-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.acc-view').forEach(v => v.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('acc-' + view).classList.add('active');
+  pinState.login = ''; pinState.reg = ''; pinState.forgot = '';
+  updateDots('login'); updateDots('reg'); updateDots('forgot');
+  hideForgotPin();
+}
+
+function showForgotPin() {
+  document.getElementById('forgot-pin-section').style.display = 'block';
+  document.getElementById('login-pin-section').style.display = 'none';
+  document.getElementById('forgot-pin-btn').style.display = 'none';
+  document.getElementById('login-error').style.display = 'none';
+  pinState.forgot = '';
+  updateDots('forgot');
+}
+
+function hideForgotPin() {
+  const sec = document.getElementById('forgot-pin-section');
+  if (sec) sec.style.display = 'none';
+  const sel = document.getElementById('select-player');
+  if (sel && sel.value) {
+    document.getElementById('login-pin-section').style.display = 'block';
+  }
+  pinState.forgot = '';
+  updateDots('forgot');
+}
+
+function submitForgotPin() {
+  const id = document.getElementById('select-player').value;
+  if (!id) return toast('Select your name first');
+  const p = players[id];
+  if (!p) return;
+  const nameInput = document.getElementById('forgot-name-verify').value.trim();
+  if (nameInput.toLowerCase() !== p.name.toLowerCase()) {
+    toast('Name does not match our records');
+    return;
+  }
+  if (pinState.forgot.length < 4) return toast('Enter a 4-digit new PIN');
+  db.ref('players/' + id + '/pin').set(pinState.forgot).then(() => {
+    toast('PIN updated successfully! Please login. ✓');
+    hideForgotPin();
+    document.getElementById('forgot-name-verify').value = '';
+    pinState.forgot = '';
+    updateDots('forgot');
+  });
+}
+
+function renderPlayerDropdown() {
+  const sel = document.getElementById('select-player');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— select your name —</option>';
+  Object.values(players).sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id; o.textContent = p.name;
+    if (p.id === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function onLoginSelect(id) {
+  const sec = document.getElementById('login-pin-section');
+  const err = document.getElementById('login-error');
+  pinState.login = '';
+  updateDots('login');
+  if (err) err.style.display = 'none';
+  sec.style.display = id ? 'block' : 'none';
+}
+
+function pinKey(ctx, digit) {
+  if (pinState[ctx].length >= 4) return;
+  pinState[ctx] += String(digit);
+  updateDots(ctx);
+  if (pinState[ctx].length === 4 && ctx === 'login') pinSubmit('login');
+  // For register: enable submit button when 4 digits entered
+  if (ctx === 'reg') {
+    const btn = document.getElementById('reg-submit-btn');
+    if (btn) btn.disabled = pinState.reg.length < 4;
+  }
+}
+
+function pinClear(ctx) {
+  pinState[ctx] = pinState[ctx].slice(0, -1);
+  updateDots(ctx);
+  if (ctx === 'reg') {
+    const btn = document.getElementById('reg-submit-btn');
+    if (btn) btn.disabled = pinState.reg.length < 4;
+  }
+}
+
+function updateDots(ctx) {
+  const prefix = ctx === 'login' ? 'login' : ctx === 'reg' ? 'reg' : 'forgot';
+  const dots = document.querySelectorAll(`#${prefix}-dots .pin-dot`);
+  dots.forEach((d, i) => {
+    d.classList.toggle('filled', i < pinState[ctx].length);
+    d.classList.remove('error');
+  });
+}
+
+function pinError(ctx) {
+  const prefix = ctx === 'login' ? 'login' : ctx === 'reg' ? 'reg' : 'forgot';
+  document.querySelectorAll(`#${prefix}-dots .pin-dot`).forEach(d => {
+    d.classList.remove('filled'); d.classList.add('error');
+  });
+  setTimeout(() => {
+    pinState[ctx] = '';
+    updateDots(ctx);
+  }, 700);
+}
+
+function pinSubmit(ctx) {
+  if (pinState[ctx].length < 4) return toast('Enter a 4-digit PIN');
+  if (ctx === 'login') {
+    const id = document.getElementById('select-player').value;
+    if (!id) return toast('Select your name first');
+    const p = players[id];
+    if (!p) return;
+    if (String(p.pin) !== String(pinState.login)) {
+      pinError('login');
+      const err = document.getElementById('login-error');
+      if (err) err.style.display = 'block';
+      const forgotBtn = document.getElementById('forgot-pin-btn');
+      if (forgotBtn) forgotBtn.style.display = 'block';
+      return;
+    }
+    const err = document.getElementById('login-error');
+    if (err) err.style.display = 'none';
+    showPlayerUI(id);
+    toast('Welcome back, ' + p.name + '! 🎉');
+  } else {
+    // Register
+    const name = document.getElementById('new-player-input').value.trim();
+    if (!name) { toast('Please enter your name first'); return; }
+    const exists = Object.values(players).find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (exists) { toast('Name already taken, please login instead'); return; }
+    const pin = pinState.reg;
+    const id = 'p_' + Date.now();
+    db.ref('players/' + id).set({ id, name, pin }).then(() => {
+      document.getElementById('new-player-input').value = '';
+      pinState.reg = ''; updateDots('reg');
+      showPlayerUI(id);
+      toast('Welcome, ' + name + '! 🎉');
+    });
+  }
+}
+
+function showPlayerUI(id) {
+  currentPlayer = id;
+  localStorage.setItem('wc-player', id);
+  const p = players[id];
+  const name = p ? p.name : id;
+  document.getElementById('header-player').style.display = 'flex';
+  document.getElementById('header-player-name').textContent = name;
+  const sel = document.getElementById('select-player');
+  if (sel) sel.value = id;
+  const status = document.getElementById('account-status');
+  if (status) status.innerHTML = `<div style="background:#dcfce7;border:0.5px solid #16a34a;border-radius:8px;padding:10px 14px;font-size:13px;color:#14532d">
+    <div style="font-weight:600;margin-bottom:2px">✓ Logged in as ${escHtml(name)}</div>
+    <div style="font-size:12px;opacity:.8">Go to the Games tab to start playing.</div>
+  </div>`;
+  renderQuestions();
+}
+
+function logout() {
+  currentPlayer = null;
+  localStorage.removeItem('wc-player');
+  document.getElementById('header-player').style.display = 'none';
+  const sel = document.getElementById('select-player');
+  if (sel) { sel.value = ''; onLoginSelect(''); }
+  const status = document.getElementById('account-status');
+  if (status) status.innerHTML = '';
+  pinState.login = ''; pinState.reg = '';
+  updateDots('login'); updateDots('reg');
+  renderQuestions();
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-account').classList.add('active');
+  document.querySelectorAll('.tab-btn')[2].classList.add('active');
+}
+
+// ── Questions (Play view) ──
+function renderQuestions() {
+  const container = document.getElementById('questions-container');
+  if (!container) return;
+  if (!currentPlayer) {
+    container.innerHTML = '<div class="empty"><span class="empty-icon">👤</span>Go to the <strong>Account</strong> tab to select your name and start playing.</div>';
+    return;
+  }
+  const allQs = Object.values(questions);
+  if (allQs.length === 0) {
+    container.innerHTML = '<div class="empty"><span class="empty-icon">⏳</span>No questions yet. Admin is preparing the questions.</div>';
+    return;
+  }
+  const now = new Date();
+  // Sort newest deadline first
+  const sorted = [...allQs].sort((a,b) => new Date(b.deadline) - new Date(a.deadline));
+  const ongoing   = sorted.filter(q => now < new Date(q.deadline));
+  const completed = sorted.filter(q => now >= new Date(q.deadline));
+
+  let html = '';
+  if (ongoing.length > 0) {
+    html += '<div class="section-label">🟢 On Going Game</div>';
+    html += ongoing.map(q => renderQuestionCard(q, now)).join('');
+  }
+  if (completed.length > 0) {
+    html += '<div class="section-label">✅ Completed Game</div>';
+    html += completed.map(q => renderQuestionCard(q, now)).join('');
+  }
+  container.innerHTML = html;
+}
+
+function renderQuestionCard(q, now) {
+  const deadline  = new Date(q.deadline);
+  const isOpen    = now < deadline;
+  const userAns   = answers[currentPlayer]?.[q.id];
+  const hasResult = q.correct && q.correct !== '';
+  const isCorrect = hasResult && userAns === q.correct;
+
+  // Badge
+  let badge = '';
+  const scoreLabel = q.score && q.score > 1 ? ` <span style="font-size:10px;background:#ede9fe;color:#4c1d95;border-radius:4px;padding:1px 6px;font-weight:600;margin-left:3px">🏆 ${q.score} pts</span>` : '';
+  if (isOpen)       badge = `<span class="badge badge-open">🟢 Open</span>${scoreLabel}`;
+  else if (hasResult) badge = `<span class="badge badge-scored">✅ Done</span>${scoreLabel}`;
+  else              badge = `<span class="badge badge-closed">🔒 Closed</span>${scoreLabel}`;
+
+  // Deadline string + countdown
+  const deadlineStr = deadline.toLocaleString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  let countdownHtml = '';
+  if (isOpen) {
+    const diff = deadline - now;
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const urgent = diff < 3600000;
+    countdownHtml = `<div class="countdown ${urgent ? 'urgent' : ''}">⏱ Closes in: ${h > 0 ? h + ' hr ' : ''}${m} min</div>`;
+  }
+
+  // Options HTML
+  const opts = q.options || [];
+  const single = opts.length <= 2;
+  let optsHtml = `<div class="answer-grid ${single ? 'single' : ''}">`;
+
+  if (isOpen) {
+    optsHtml += opts.map(opt => {
+      const isSelected = opt === userAns;
+      const cls = isSelected ? 'selected' : '';
+      return `<button class="ans-btn ${cls}" onclick="openModal('${q.id}','${escHtml(opt)}')">${escHtml(opt)}</button>`;
+    }).join('');
+  } else {
+    optsHtml += opts.map(opt => {
+      let cls = '';
+      if (hasResult && opt === q.correct) cls = 'correct';
+      else if (opt === userAns && hasResult && opt !== q.correct) cls = 'wrong';
+      else if (opt === userAns && !hasResult) cls = 'selected';
+      return `<button class="ans-btn ${cls}" disabled>${escHtml(opt)}</button>`;
+    }).join('');
+  }
+  optsHtml += '</div>';
+
+  // Change answer note (open + already answered)
+  let changeNote = '';
+  if (isOpen && userAns) {
+    changeNote = `<div style="font-size:12px;color:var(--gray-400);margin-top:8px;display:flex;align-items:center;gap:4px">
+      ✏️ Your answer: <strong style="color:var(--gray-800)">${escHtml(userAns)}</strong> — you can still change it before the deadline.
+    </div>`;
+  }
+
+  // Result note
+  let note = '';
+  if (!isOpen) {
+    if (!userAns) {
+      note = '<div class="result-note missed">You did not answer this question.</div>';
+    } else if (hasResult) {
+      if (isCorrect) note = `<div class="result-note correct">✓ Correct! You earned <strong>${q.score || 1} point${(q.score || 1) > 1 ? 's' : ''}</strong> 🎉</div>`;
+      else note = `<div class="result-note wrong">✗ Wrong. Correct answer: <strong>${escHtml(q.correct)}</strong></div>`;
+    } else {
+      note = `<div class="result-note pending">⏳ Waiting for match result...</div>`;
+    }
+  }
+
+  return `
+    <div class="card" style="${isOpen ? 'border:2px solid #7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.08)' : ''}">
+      <div class="card-header">
+        <div>
+          ${q.match ? `<div class="text-sm text-muted" style="margin-bottom:4px">⚽ ${escHtml(q.match)}</div>` : ''}
+          <div class="card-title">${escHtml(q.text)}</div>
+          <div class="card-meta">Deadline: ${deadlineStr}</div>
+          ${countdownHtml}
+        </div>
+        ${badge}
+      </div>
+      ${optsHtml}
+      ${changeNote}
+      ${note}
+    </div>`;
+}
+
+// ── Modal state ──
+let _modalQid = null;
+let _modalAns = null;
+
+function openModal(qid, ans) {
+  if (!currentPlayer) return toast('Please select your name first');
+  const q = questions[qid];
+  if (!q) return;
+  if (new Date() >= new Date(q.deadline)) return toast('Deadline has passed!');
+  const existing = answers[currentPlayer]?.[qid];
+  _modalQid = qid;
+  _modalAns = ans;
+  document.getElementById('modal-question').textContent = (q.match ? '⚽ ' + q.match + ' · ' : '') + q.text;
+  document.getElementById('modal-answer').textContent = ans;
+  document.getElementById('modal-change-note').textContent = existing
+    ? `Changing from "${existing}" to "${ans}"`
+    : 'Once submitted, you can still change your answer before the deadline.';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  cancelModal();
+}
+
+function cancelModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+  _modalQid = null;
+  _modalAns = null;
+}
+
+function confirmAnswer() {
+  if (!_modalQid || !_modalAns) return;
+  const qid = _modalQid, ans = _modalAns;
+  cancelModal();
+  if (!currentPlayer) return toast('Please select your name first');
+  const q = questions[qid];
+  if (!q) return;
+  if (new Date() >= new Date(q.deadline)) return toast('Deadline has passed!');
+  db.ref(`answers/${currentPlayer}/${qid}`).set(ans).then(() => toast('Answer saved ✓'));
+}
+
+function submitAnswer(qid, ans) {
+  openModal(qid, ans);
+}
+
+// ── Leaderboard ──
+let lbMode = 'overall';
+
+function setLbMode(mode) {
+  lbMode = mode;
+  document.querySelectorAll('.lb-mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('lbmode-' + mode).classList.add('active');
+  document.getElementById('lb-perq-ctrl').style.display  = mode === 'per-q'  ? 'block' : 'none';
+  document.getElementById('lb-until-ctrl').style.display = mode === 'until'  ? 'block' : 'none';
+  renderLeaderboard();
+}
+
+function populateQSelect() {
+  const sel = document.getElementById('lb-q-select');
+  const cur = sel.value;
+  const scored = Object.values(questions)
+    .filter(q => q.correct && q.correct !== '')
+    .sort((a,b) => new Date(b.deadline) - new Date(a.deadline));
+  sel.innerHTML = '<option value="">— select question —</option>';
+  scored.forEach(q => {
+    const o = document.createElement('option');
+    o.value = q.id;
+    o.textContent = (q.match ? q.match + ' · ' : '') + q.text.substring(0, 48) + (q.text.length > 48 ? '…' : '');
+    if (q.id === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function renderLeaderboard() {
+  const allQs = Object.values(questions);
+  const ps    = Object.values(players);
+
+  document.getElementById('stat-q').textContent      = allQs.length;
+  document.getElementById('stat-p').textContent      = ps.length;
+  document.getElementById('stat-scored').textContent = allQs.filter(q => q.correct && q.correct !== '').length;
+
+  populateQSelect();
+
+  if (ps.length === 0) {
+    document.getElementById('leaderboard-container').innerHTML = '<div class="empty"><span class="empty-icon">🏆</span>No participants registered yet.</div>';
+    return;
+  }
+
+  const medals = ['🥇','🥈','🥉'];
+  let scoredQs = [];
+  let subtitle = '';
+
+  if (lbMode === 'overall') {
+    scoredQs = allQs.filter(q => q.correct && q.correct !== '');
+    subtitle = 'Overall cumulative leaderboard';
+
+  } else if (lbMode === 'per-q') {
+    const qid = document.getElementById('lb-q-select').value;
+    if (!qid) {
+      document.getElementById('leaderboard-container').innerHTML = '<div class="empty">Select a question above to view its leaderboard.</div>';
+      return;
+    }
+    const q = questions[qid];
+    scoredQs = q ? [q] : [];
+    subtitle = q ? (q.match ? q.match + ' · ' : '') + q.text : '';
+
+  } else if (lbMode === 'until') {
+    const untilVal = document.getElementById('lb-until-date').value;
+    if (!untilVal) {
+      document.getElementById('leaderboard-container').innerHTML = '<div class="empty">Select a date & time above to view the leaderboard.</div>';
+      return;
+    }
+    const untilDate = new Date(untilVal);
+    scoredQs = allQs.filter(q => q.correct && q.correct !== '' && new Date(q.deadline) <= untilDate);
+    const fmt = untilDate.toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    subtitle = `Cumulative up to ${fmt} · ${scoredQs.length} question(s)`;
+  }
+
+  const maxPts = scoredQs.reduce((sum, q) => sum + (q.score || 1), 0);
+  const rows = ps.map(p => {
+    let pts = 0, answered = 0;
+    scoredQs.forEach(q => {
+      const a = answers[p.id]?.[q.id];
+      if (a) { answered++; if (a === q.correct) pts += (q.score || 1); }
+    });
+    return { id: p.id, name: p.name, pts, answered, total: scoredQs.length, maxPts };
+  }).sort((a,b) => b.pts - a.pts || a.name.localeCompare(b.name));
+
+  let html = '';
+  if (subtitle) html += `<p style="font-size:12px;color:var(--gray-400);margin-bottom:10px">${escHtml(subtitle)}</p>`;
+  html += `<div class="lb-header">
+    <div></div><div>Participant</div>
+    <div class="lb-answered-h" style="text-align:right;font-size:11px">Correct/Total</div>
+    <div style="text-align:right">Pts</div>
+  </div>`;
+  rows.forEach((r, i) => {
+    const isMe  = r.id === currentPlayer;
+    const isTop = i === 0 && r.pts > 0;
+    const rank  = medals[i] || (i + 1);
+    html += `
+      <div class="lb-row ${isMe ? 'me' : ''} ${isTop ? 'top1' : ''}">
+        <div class="lb-rank">${rank}</div>
+        <div class="lb-name">${escHtml(r.name)}${isMe ? ' <span style="font-size:11px;color:var(--green)">(you)</span>' : ''}</div>
+        <div class="lb-answered">${r.answered}/${r.total}</div>
+        <div class="lb-pts">${r.pts} <span style="font-size:11px;font-weight:400;color:var(--gray-400)">/ ${r.maxPts}</span></div>
+      </div>`;
+  });
+  document.getElementById('leaderboard-container').innerHTML = html;
+}
+
+// ── Admin ──
+function checkPin() {
+  if (document.getElementById('pin-input').value === ADMIN_PIN) {
+    document.getElementById('admin-gate').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+  } else {
+    toast('Wrong PIN');
+    document.getElementById('pin-input').value = '';
+  }
+}
+
+function addQuestion() {
+  const text     = document.getElementById('q-text').value.trim();
+  const optsRaw  = document.getElementById('q-opts').value;
+  const match    = document.getElementById('q-match').value.trim();
+  const deadline = document.getElementById('q-deadline').value;
+  const opts     = optsRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+  if (!text || opts.length < 2 || !deadline) return toast('Please fill in all required fields (*)');
+
+  const scoreVal = parseInt(document.getElementById('q-score').value) || 1;
+  const id = 'q_' + Date.now();
+  db.ref('questions/' + id).set({ id, text, options: opts, match, deadline, correct: null, score: scoreVal }).then(() => {
+    document.getElementById('q-text').value     = '';
+    document.getElementById('q-opts').value     = '';
+    document.getElementById('q-match').value    = '';
+    document.getElementById('q-deadline').value = '';
+    document.getElementById('q-score').value    = '1';
+    toast('Question added ✓');
+  });
+}
+
+function renderAdminQList() {
+  populateResetPinDropdown();
+  const container = document.getElementById('admin-q-list');
+  const qs = Object.values(questions).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+  document.getElementById('admin-q-count').textContent = qs.length + ' question(s)';
+  if (qs.length === 0) { container.innerHTML = '<p class="text-sm text-muted">No questions yet.</p>'; return; }
+
+  const now = new Date();
+  container.innerHTML = qs.map(q => {
+    const deadline   = new Date(q.deadline);
+    const isOpen     = now < deadline;
+    const answeredN  = Object.values(answers).filter(a => a[q.id]).length;
+    const totalP     = Object.values(players).length;
+    const deadlineStr = deadline.toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+    let badge = isOpen
+      ? '<span class="badge badge-open">🟢 Open</span>'
+      : (q.correct ? '<span class="badge badge-scored">✅ Done</span>' : '<span class="badge badge-closed">🔒 Closed</span>');
+
+    const correctSection = !isOpen
+      ? `<div class="flex" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+          <label style="font-size:13px;color:var(--gray-600);margin:0">Correct answer:</label>
+          <select onchange="setCorrect('${q.id}',this.value)" style="font-size:13px;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px;font-family:inherit;flex:1;min-width:120px">
+            <option value="">— select answer —</option>
+            ${q.options.map(o => `<option value="${escHtml(o)}" ${q.correct===o?'selected':''}>${escHtml(o)}</option>`).join('')}
+          </select>
+          ${q.correct ? `<span class="badge badge-scored">✓ ${escHtml(q.correct)}</span>` : ''}
+        </div>`
+      : `<p class="text-sm text-muted" style="margin-top:6px">Correct answer can be set after deadline (${deadlineStr}) passes.</p>`;
+
+    return `<div class="admin-q-card">
+      <div class="flex-between">
+        <div class="q-title">${escHtml(q.text)}</div>
+        ${badge}
+      </div>
+      ${q.match ? `<div class="q-opts">⚽ ${escHtml(q.match)}</div>` : ''}
+      <div class="q-opts">Opsi: ${q.options.map(o=>escHtml(o)).join(' · ')}</div>
+      <div class="text-sm text-muted">Deadline: ${deadlineStr} · ${answeredN}/${totalP} participants answered</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+        <div style="display:inline-flex;align-items:center;gap:5px;background:#ede9fe;color:#4c1d95;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">
+          🏆 ${q.score || 1} pt${(q.score || 1) > 1 ? 's' : ''} for correct answer
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <input type="number" value="${q.score || 1}" min="1" max="100" style="width:60px;padding:4px 8px;font-size:13px;font-weight:600;text-align:center;border:0.5px solid var(--gray-200);border-radius:6px;font-family:inherit" id="score-edit-${q.id}">
+          <button class="btn btn-sm" onclick="updateScore('${q.id}')" style="font-size:12px;padding:4px 10px">Update pts</button>
+        </div>
+      </div>
+      ${correctSection}
+      <div class="q-footer" style="margin-top:10px">
+        <button class="btn btn-danger btn-sm" onclick="deleteQuestion('${q.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setCorrect(qid, val) {
+  if (!val) return;
+  db.ref('questions/' + qid + '/correct').set(val).then(() => toast('Correct answer saved ✓'));
+}
+
+function updateScore(qid) {
+  const inp = document.getElementById('score-edit-' + qid);
+  if (!inp) return;
+  const score = parseInt(inp.value);
+  if (!score || score < 1) return toast('Score must be at least 1');
+  db.ref('questions/' + qid + '/score').set(score).then(() => toast(`Score updated to ${score} pt${score > 1 ? 's' : ''} ✓`));
+}
+
+function deleteQuestion(qid) {
+  if (!confirm('Delete this question and all participant answers?')) return;
+  db.ref('questions/' + qid).remove();
+  Object.keys(players).forEach(pid => db.ref(`answers/${pid}/${qid}`).remove());
+  toast('Question deleted');
+}
+
+function resetAllAnswers() {
+  if (!confirm('Reset all participant answers? Points will go back to 0.')) return;
+  db.ref('answers').remove().then(() => toast('All answers reset'));
+}
+
+function deleteAllQuestions() {
+  if (!confirm('Delete ALL questions AND answers? This cannot be undone!')) return;
+  db.ref('questions').remove();
+  db.ref('answers').remove();
+  toast('All data deleted');
+}
+
+function adminResetPin() {
+  const pid = document.getElementById('reset-pin-player').value;
+  const pin = document.getElementById('reset-pin-value').value.trim();
+  if (!pid) return toast('Select a participant');
+  if (!/^\d{4}$/.test(pin)) return toast('PIN must be exactly 4 digits');
+  db.ref('players/' + pid + '/pin').set(pin).then(() => {
+    toast('PIN reset successfully ✓');
+    document.getElementById('reset-pin-value').value = '';
+  });
+}
+
+function populateResetPinDropdown() {
+  const sel = document.getElementById('reset-pin-player');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— select participant —</option>';
+  Object.values(players).sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id; o.textContent = p.name;
+    if (p.id === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+// ── Utils ──
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Auto-refresh countdown every minute
+setInterval(() => { if (currentPlayer) renderQuestions(); }, 60000);
+</script>
+</body>
+</html>
